@@ -2,10 +2,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * This class works with stored data(name, surname, phone number, email)
@@ -15,10 +12,11 @@ public class AddressBook {
     public static void main(String[] args) throws IOException {
 
         File file = new File("addressBook.txt");
+        file.createNewFile();
         Scanner readFile = new Scanner(file);
         Scanner readUser = new Scanner(System.in);
         String[] insertableData = null;// in this var we keep not only the data that was
-                                        // inserted but also the one that was searched for
+        // inserted but also the one that was searched for
         String[][] data = null;
         if(readFile.hasNext()) {
             int n = Integer.parseInt(readFile.nextLine());
@@ -36,7 +34,7 @@ public class AddressBook {
                 action = readUser.nextLine();
             }
             System.out.println("Enter the data that you want to insert/search/remove/change: ");
-                insertableData = readUser.nextLine().split(" ");
+            insertableData = readUser.nextLine().split(" ");
             if (action.equalsIgnoreCase("SEARCH")){
                 String[][] searchResult = searchData(data,insertableData);
                 while(searchResult[0][0] == null) {
@@ -64,8 +62,10 @@ public class AddressBook {
                     System.out.println("Enter new data (enter the whole data\n" +
                             "include name, surname, phone number and email)");
                     changeableData = readUser.nextLine().split(" ");
-                    while (!checkChangeableData(data, changeableData)) {
-                        System.out.println("Entered data is invalid. Please try again.");
+                    while (!checkChangeableData(insertableData, changeableData)) {
+                        System.out.println("Entered data is invalid. " +
+                                "\nThe name and surname should be the same as in the data that you want to change." +
+                                "\nPlease try again.");
                         changeableData = readUser.nextLine().split(" ");
                     }
                     data = changeData(data, changeableData, insertableData, readUser);
@@ -89,7 +89,7 @@ public class AddressBook {
                     System.out.println("Entered data is invalid. Please try again.");
                     insertableData = readUser.nextLine().split(" ");
                 }
-                data = insertData(data,insertableData,readUser,null,true);
+                firstInsertion(data,insertableData);
             }
         }
         FileWriter fileWriter = new FileWriter(file);
@@ -98,7 +98,8 @@ public class AddressBook {
 
         for (int i = 0; i < data.length; i++) {
             for (int j = 0; j < 4; j++) {
-                printWriter.print(data[i][j]+" ");
+                if(data[i][j]!= null)
+                    printWriter.print(data[i][j]+" ");
             }
             printWriter.print("\n");
         }
@@ -106,19 +107,34 @@ public class AddressBook {
 
     }
 
+
+
+    private static void firstInsertion(String[][] data, String[] insertableData) {
+        for (int i = 0; i < data.length; i++) {
+            if(data[i][0] == null){
+                data[i] = insertableData;
+                break;
+            }
+        }
+        System.out.println("Entered data is inserted!");
+    }
+
     //helps you to insert data in a file
     private static String[][] insertData(String[][] data, String[] insertableData,
                                          Scanner readUser, String[] changeableData, boolean printInsert){
         String[][] resultedData = new String[data.length+1][4];
-        while(!(insertableData[0].equalsIgnoreCase("stop"))
-                && isInTheDataset(data,insertableData, changeableData,data.length)) {
+        while(isInTheDataset(data,insertableData, changeableData,data.length)) {
             System.out.println("This information already exists in the dataset. If there is nothing to insert enter 'stop'");
             insertableData = readUser.nextLine().split(" ");
+            if(insertableData[0].equalsIgnoreCase("stop"))
+                break;
         }
-        for (int i = 0; i < data.length; i++) {
-            resultedData[i] = data[i];
+        int index = 0;
+        for (int i = 0; i < data.length; i++){
+            if(data[i][0] != null)
+                resultedData[index++] = data[i];
         }
-        resultedData[data.length] = insertableData;
+        resultedData[index] = insertableData;
         if(printInsert)
             System.out.println("Entered data is inserted!");
         return resultedData;
@@ -149,10 +165,8 @@ public class AddressBook {
     private static String[][] searchData(String[][] data, String[] searchableData){
         String[][] result = new String[data.length][4];
         for (int i = 0, k=0; i < data.length; i++) {
-            for (int j = 0; j < searchableData.length; j++) {
-                if(Arrays.asList(data[i]).contains(searchableData[j]))
-                    result[k++] = data[i];
-            }
+            if(Arrays.asList(data[i]).containsAll(List.of(searchableData)))
+                result[k++] = data[i];
         }
         if(result[0][0]!= null)
             System.out.println("Here is the data that you searched for: ");
@@ -191,12 +205,14 @@ public class AddressBook {
 
     //checks if the data is valid for inserting it in the dataset
     // returns true if there is no data with the same name and surname
-    private static boolean checkChangeableData(String[][] data, String[] insertableData){
+    private static boolean checkChangeableData(String[] data, String[] insertableData){
         if(insertableData.length != 4)
             return false;
-        if(insertableData != null && Objects.equals(insertableData[0], insertableData[0])
-                && Objects.equals(insertableData[1], insertableData[1]))
+
+        if ((Objects.equals(insertableData[0], data[0])
+                && Objects.equals(insertableData[1], data[1])))
             return true;
+
         return false;
     }
 
